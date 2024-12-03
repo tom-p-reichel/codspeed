@@ -59,6 +59,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
+name = "bluh"
+version = "0.1.0"
+dependencies = [
+ "aoc-runner",
+ "aoc-runner-derive",
+ "codspeed-criterion-compat",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -130,15 +139,6 @@ checksum = "afb84c814227b90d6895e01398aee0d8033c00e7466aca416fb6a8e0eb19d8a7"
 
 [[package]]
 name = "codspeed"
-version = "0.1.0"
-dependencies = [
- "aoc-runner",
- "aoc-runner-derive",
- "codspeed-criterion-compat",
-]
-
-[[package]]
-name = "codspeed"
 version = "2.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "450a0e9df9df1c154156f4344f99d8f6f6e69d0fc4de96ef6e2e68b2ec3bce97"
@@ -154,7 +154,7 @@ version = "2.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8eb1a6cb9c20e177fde58cdef97c1c7c9264eb1424fe45c4fccedc2fb078a569"
 dependencies = [
- "codspeed 2.7.2",
+ "codspeed",
  "colored",
  "criterion",
 ]
