@@ -94,8 +94,7 @@ pub unsafe fn part1_unsafe(input:&str) -> i32 {
 
     scan = (b_aln as *const u8 as *const __m256i);
 
-    for i in (0..  (input.len() -4 - misalignment ) / 32) {
-        
+    for i in (0..  (input.len().saturating_sub(4+misalignment) ) / 32) {
         // let mut v =  (((!( unsafe {*scan.offset(i as isize) } ^ MASK_M ) & MAGIC)) + MAGIC2) & (!MAGIC);
         let mut v : i32  = _mm256_movemask_epi8(_mm256_cmpeq_epi8(*scan.offset(i as isize), _mm256_set1_epi8(0x6d)));
         // v.trailing_zeros();
@@ -110,11 +109,13 @@ pub unsafe fn part1_unsafe(input:&str) -> i32 {
     }
 
     // edge cases -- this is actually terribly slow even for the last 32 vals...
-    for i in (0 .. misalignment) {
+    for i in (0 .. std::cmp::min(misalignment,b.len()-4)) {
+        // println!("prefire... {}", i);
         cnter += handle_m(b, i);
     }
 
-    for i in ((input.len()-4) -(input.len()-4)%32..input.len()-4) {
+    for i in (input.len().saturating_sub(4+misalignment) - (input.len().saturating_sub(4+misalignment)%32) + misalignment..input.len()-4) {
+        // println!("postfire... {}", i);
         cnter += handle_m(b, i);
     }
     cnter
@@ -160,7 +161,8 @@ pub unsafe fn part2_unsafe(input:&str) -> i32 {
 
     let mut toggle = true;
     
-    for i in (0 .. misalignment) {
+    for i in (0 .. std::cmp::min(misalignment,b.len()-4)) {
+        // println!("prefire... {}", i);
         if b[i] == b'm' {
             if toggle {
                 cnter += handle_m(b, i)
@@ -171,7 +173,7 @@ pub unsafe fn part2_unsafe(input:&str) -> i32 {
     }
 
 
-    for i in (0..  (input.len() -4 - misalignment ) / 32) {
+    for i in (0..  (input.len().saturating_sub(4+misalignment) ) / 32) {
         
         // let mut v =  (((!( unsafe {*scan.offset(i as isize) } ^ MASK_M ) & MAGIC)) + MAGIC2) & (!MAGIC);
         let vm : i32  = _mm256_movemask_epi8(_mm256_cmpeq_epi8(*scan.offset(i as isize), _mm256_set1_epi8(0x6d)));
@@ -196,7 +198,8 @@ pub unsafe fn part2_unsafe(input:&str) -> i32 {
 
     // edge cases -- this is actually terribly slow even for the last 32 vals...
 
-    for i in ((input.len()-4) - ((input.len()-4)%32)..input.len()-4) {
+    for i in ((input.len().saturating_sub(4+misalignment)) - ((input.len().saturating_sub(4+misalignment))%32) + misalignment..input.len()-4) {
+        // println!("postfire... {}", i);
         if b[i] == b'm' {
             if toggle {
                 cnter += handle_m(b, i)
