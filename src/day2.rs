@@ -14,7 +14,7 @@ pub fn part1(input:&str) -> i32 {
     let mut len = 0;
     let mut arr : [i32; 16 ] = [0 ; 16];
     let mut valid = 0;
-    for bi in (0..bs.len()) {
+    for bi in 0..bs.len() {
         //let c : i32 = unsafe { (*bs.get_unchecked(bi)).into() } ;
         let c : i32 = unsafe { *bs.get_unchecked(bi) }.into();
         let isnum = c >= NUM_0 && c <= NUM_9;
@@ -48,7 +48,6 @@ pub fn part1(input:&str) -> i32 {
             cvalid &= cdiff.signum() == dir && cdiff.abs() < 4 && cdiff.abs() >0;
         }
         valid += cvalid as i32;
-        len = 0;
         for idx in 0..16 {
             arr[idx] = 0;
         }
@@ -57,7 +56,7 @@ pub fn part1(input:&str) -> i32 {
 }
 
 pub fn check_pair(a:i32, b:i32, dir :i32) -> bool {
-    let diff = (a - b);
+    let diff = a - b;
     return diff.signum() == dir && diff.abs() > 0 && diff.abs() < 4;
 }
 
@@ -69,7 +68,7 @@ pub fn p2in(len_b:&usize, arr_b:&[i32 ; 16]) -> bool {
         let a = (arr[0] - arr[1]).signum();
         let b = (arr[1] - arr[2]).signum();
         let c = (arr[2] - arr[3]).signum();
-        dir = if (a==b) {a} else {if (b==c) {b} else {if c==a {c} else {0}}};
+        dir = if a==b {a} else {if b==c {b} else {if c==a {c} else {0}}};
     }
     //let dir = unsafe { ((*arr.get_unchecked(0)) - (*arr.get_unchecked(len-1))).signum() } ;
     //let dir = (arr[0] - arr[1]).signum();
@@ -108,7 +107,7 @@ pub fn part2(input:&str) -> i32 {
     let mut len = 0;
     let mut arr : [i32; 16 ] = [0 ; 16];
     let mut valid = 0;
-    for bi in (0..bs.len()) {
+    for bi in 0..bs.len() {
         //let c : i32 = unsafe { (*bs.get_unchecked(bi)).into() } ;
         let c : i32 = unsafe { *bs.get_unchecked(bi) }.into();
         let isnum = c >= NUM_0 && c <= NUM_9;
