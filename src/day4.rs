@@ -1,7 +1,6 @@
 
 use core::str;
-use std::arch::x86_64::{__m128i, __m256i, _mm256_and_si256, _mm256_castps_si256, _mm256_castsi256_ps, _mm256_cmpeq_epi32, _mm256_cmpeq_epi8, _mm256_extractf128_pd, _mm256_extractf128_si256, _mm256_load_ps, _mm256_loadu2_m128, _mm256_loadu2_m128i, _mm256_loadu_ps, _mm256_loadu_si256, _mm256_maddubs_epi16, _mm256_maskload_ps, _mm256_min_epi8, _mm256_movemask_epi8, _mm256_movemask_ps, _mm256_set1_epi32, _mm256_set1_epi8, _mm256_set_epi16, _mm256_set_epi32, _mm256_shuffle_epi8, _mm256_srli_epi16, _mm_and_si128, _mm_castsi128_ps, _mm_cmpeq_epi32, _mm_cmpeq_epi8, _mm_hadd_epi16, _mm_loadu_si128, _mm_loadu_si64, _mm_maddubs_epi16, _mm_movemask_epi8, _mm_movemask_ps, _mm_mullo_epi16, _mm_set1_epi32, _mm_set1_epi8, _mm_set_epi16, _mm_set_epi32, _mm_set_epi8, _mm_shuffle_epi8, _mm_srli_epi16};
-use std::arch::x86_64::_mm_castps_si128;
+use std::arch::x86_64::{__m256i, _mm256_and_si256, _mm256_castps_si256, _mm256_cmpeq_epi8, _mm256_loadu_ps, _mm256_loadu_si256, _mm256_movemask_epi8, _mm256_set1_epi8, _mm256_set_epi32, _mm256_shuffle_epi8, _mm256_srli_epi16};
 use std::borrow::BorrowMut;
 /* 
 const X : u32 = 0b11;
@@ -15,7 +14,6 @@ const CHAR_MUL : u32 = 0x01010100 >> 3;
 const LD_MASK : u32 = 0xfc000000; 
 const UP_MASK : u32 = 0x00fc0000; 
 const RD_MASK : u32 = 0x0000fc00;
-const LT_MASK : u32 = 0x0000003f;
 
 const XMAS : u8 = 0b11010010;
 const SAMX : u8 = 0b10000111;
@@ -30,7 +28,7 @@ pub fn part1(input:&str) -> u32 {
     x
 }
 
-pub fn print_DP(x : u32) {
+pub fn print_dp(x : u32) {
 
     let l = ['A','M','S','X'];
 
@@ -91,8 +89,8 @@ pub unsafe fn part1_unsafe(input:&str) -> u32 {
     // TODO: maybe align this? currently banging out loudu's.
     //let misalignment = dp.as_ptr().offset((row*COLS) as isize).align_offset(align_of::<__m256i>());
     //for i in (1..COLS-misalignment
-
-    for i in (0..(ROWS*COLS)/8) {
+    
+    for i in 0..(ROWS*COLS)/8 {
             
         let x = _mm256_castps_si256(_mm256_loadu_ps(std::mem::transmute(dp.as_ptr().offset((i*8) as isize ))));
         let m1 :u32 = std::mem::transmute(_mm256_movemask_epi8(_mm256_cmpeq_epi8(x, _mm256_set1_epi8(std::mem::transmute(XMAS)))));
@@ -101,9 +99,9 @@ pub unsafe fn part1_unsafe(input:&str) -> u32 {
     }
 
     // do the last little bit that doesn't divide
-    for i in (((ROWS*COLS)/8) * 8..ROWS*COLS) {
+    for i in ((ROWS*COLS)/8) * 8..ROWS*COLS {
         let x : [u8;4] = std::mem::transmute(dp[i]);
-        for j in (0..4) {
+        for j in 0..4 {
             dvcnt += (x[j] == XMAS) as u32;
             dvcnt += (x[j] == SAMX) as u32;
         }
@@ -111,7 +109,7 @@ pub unsafe fn part1_unsafe(input:&str) -> u32 {
 
 
 
-    for row in (0..ROWS) {
+    for row in 0..ROWS {
         {
             let lookup  = _mm256_set_epi32(0, 0, 0, 0x08040201,0, 0, 0, 0x08040201);
     
@@ -121,20 +119,13 @@ pub unsafe fn part1_unsafe(input:&str) -> u32 {
                 let mut chunk4 = _mm256_shuffle_epi8(lookup,_mm256_srli_epi16(_mm256_and_si256(chunk, _mm256_set1_epi8(CHAR_MASK as i8)),3)); 
                 let future : &mut [u64;4] = std::mem::transmute::<_,&mut [u64;4]>(chunk4.borrow_mut());
 
-                //future[1] = future[1] * (1 + (1 << 8) + (1<< 16) + (1<<24)) + (future[0] >> 104) + (future[0] >> 112) + (future[0] >> 120);
-                //future[0] = future[0] * ( 1 + (1 << 8) + (1<< 16) + (1<<24));
-
-                let coef = (1 + (1 << 8) + (1<< 16) + (1<<24));
+                let coef = 1 + (1 << 8) + (1<< 16) + (1<<24);
                 future[3] = future[3] * coef + (((future[2] >> 40)*coef)>>24); 
                 future[2] = future[2] * coef + (((future[1] >> 40)*coef)>>24);
                 future[1] = future[1] * coef + (((future[0] >> 40)*coef)>>24);
-                future[0] = future[0] * coef ; //+ ((future[2] >> 40)*coef)>>24;
+                future[0] = future[0] * coef ; 
 
                 let mut mask = _mm256_movemask_epi8(_mm256_cmpeq_epi8(chunk4, _mm256_set1_epi8(0x0f))) as u32;
-
-                //let mask = _mm_movemask_epi8(_mm_cmpeq_epi8(_mm_and_si128(chunk16, _mm_set1_epi8(0b11110000u8 as i8)),_mm_set1_epi8(0b11110000u8 as i8)));
-
-                //println!("yay! {:#018x}  {:#034b} {:?}", future[0], mask, &input[row*COLS_NEWL+col..row*COLS_NEWL+col+32]);
 
                 while mask != 0 {
                     let tz = mask.trailing_zeros();
