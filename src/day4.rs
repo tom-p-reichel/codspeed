@@ -1,6 +1,6 @@
 
 use core::str;
-use std::arch::x86_64::{__m256i, _mm256_and_si256, _mm256_castps_si256, _mm256_cmpeq_epi8, _mm256_loadu_ps, _mm256_loadu_si256, _mm256_movemask_epi8, _mm256_set1_epi8, _mm256_set_epi32, _mm256_shuffle_epi8, _mm256_srli_epi16};
+use std::arch::x86_64::{__m256i, _mm256_and_si256, _mm256_castps_si256, _mm256_cmpeq_epi8, _mm256_loadu_ps, _mm256_loadu_si256, _mm256_movemask_epi8, _mm256_set1_epi8, _mm256_srli_epi16};
 use std::borrow::BorrowMut;
 /* 
 const X : u32 = 0b11;
@@ -89,7 +89,7 @@ pub unsafe fn part1_unsafe(input:&str) -> u32 {
     // TODO: maybe align this? currently banging out loudu's.
     //let misalignment = dp.as_ptr().offset((row*COLS) as isize).align_offset(align_of::<__m256i>());
     //for i in (1..COLS-misalignment
-    
+
     for i in 0..(ROWS*COLS)/8 {
             
         let x = _mm256_castps_si256(_mm256_loadu_ps(std::mem::transmute(dp.as_ptr().offset((i*8) as isize ))));
@@ -111,31 +111,29 @@ pub unsafe fn part1_unsafe(input:&str) -> u32 {
 
     for row in 0..ROWS {
         {
-            let lookup  = _mm256_set_epi32(0, 0, 0, 0x08040201,0, 0, 0, 0x08040201);
+            //let lookup  = _mm256_set_epi32(0, 0, 0, 0x08040201,0, 0, 0, 0x08040201);
     
             let mut col = 0;
             while col < COLS - 32 {
                 let chunk = _mm256_loadu_si256(b.as_ptr().offset((row*COLS_NEWL+col) as isize) as *const __m256i);
-                let mut chunk4 = _mm256_shuffle_epi8(lookup,_mm256_srli_epi16(_mm256_and_si256(chunk, _mm256_set1_epi8(CHAR_MASK as i8)),3)); 
+                let mut chunk4 = _mm256_srli_epi16(_mm256_and_si256(chunk, _mm256_set1_epi8(CHAR_MASK as i8)),3); 
                 let future : &mut [u64;4] = std::mem::transmute::<_,&mut [u64;4]>(chunk4.borrow_mut());
+                //let future : &mut [u64;4] = chunk4.borrow_mut() as &mut [u64;4];
 
-                let coef = 1 + (1 << 8) + (1<< 16) + (1<<24);
-                future[3] = future[3] * coef + (((future[2] >> 40)*coef)>>24); 
-                future[2] = future[2] * coef + (((future[1] >> 40)*coef)>>24);
-                future[1] = future[1] * coef + (((future[0] >> 40)*coef)>>24);
+                // compiler autovectorizes this adequately
+                let coef = 1 + (1 << 10) + (1<< 20) + (1<< 30);
+                future[3] = future[3] * coef + (((future[2] >> 34)*coef)>>30); 
+                future[2] = future[2] * coef + (((future[1] >> 34)*coef)>>30);
+                future[1] = future[1] * coef + (((future[0] >> 34)*coef)>>30);
                 future[0] = future[0] * coef ; 
 
-                let mut mask = _mm256_movemask_epi8(_mm256_cmpeq_epi8(chunk4, _mm256_set1_epi8(0x0f))) as u32;
+                let mask = _mm256_movemask_epi8(_mm256_cmpeq_epi8(chunk4, _mm256_set1_epi8(XMAS as i8))) as u32;
+                let mask2  = _mm256_movemask_epi8(_mm256_cmpeq_epi8(chunk4, _mm256_set1_epi8(SAMX as i8))) as u32;
 
-                while mask != 0 {
-                    let tz = mask.trailing_zeros();
-                    mask -= 1 << tz;
-                    let interest = &b[row*COLS_NEWL+col+(tz as usize)-3..row*COLS_NEWL+col+(tz as usize)+1 ];
-                    if interest == b"XMAS" || interest == b"SAMX" {
-                        //println!("ding!");
-                        hcnt += 1;
-                    }
-                }
+                hcnt += mask.count_ones() + mask2.count_ones(); 
+
+                // println!("yay! {:#018x}  {:#034b} {:?}", future[0], mask, &input[row*COLS_NEWL+col..row*COLS_NEWL+col+32]);
+
 
                 col += 29;
 
