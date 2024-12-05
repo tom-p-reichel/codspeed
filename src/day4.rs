@@ -1,7 +1,8 @@
 
 use core::str;
-use std::arch::x86_64::{__m128i, __m256i, _mm256_and_si256, _mm256_castps_si256, _mm256_castsi256_ps, _mm256_cmpeq_epi32, _mm256_cmpeq_epi8, _mm256_extractf128_pd, _mm256_extractf128_si256, _mm256_load_ps, _mm256_loadu2_m128, _mm256_loadu2_m128i, _mm256_loadu_ps, _mm256_maddubs_epi16, _mm256_maskload_ps, _mm256_min_epi8, _mm256_movemask_epi8, _mm256_movemask_ps, _mm256_set1_epi32, _mm256_set1_epi8, _mm256_set_epi16, _mm256_shuffle_epi8, _mm_castsi128_ps, _mm_cmpeq_epi32, _mm_loadu_si128, _mm_movemask_ps, _mm_set1_epi32, _mm_set_epi16, _mm_shuffle_epi8};
+use std::arch::x86_64::{__m128i, __m256i, _mm256_and_si256, _mm256_castps_si256, _mm256_castsi256_ps, _mm256_cmpeq_epi32, _mm256_cmpeq_epi8, _mm256_extractf128_pd, _mm256_extractf128_si256, _mm256_load_ps, _mm256_loadu2_m128, _mm256_loadu2_m128i, _mm256_loadu_ps, _mm256_maddubs_epi16, _mm256_maskload_ps, _mm256_min_epi8, _mm256_movemask_epi8, _mm256_movemask_ps, _mm256_set1_epi32, _mm256_set1_epi8, _mm256_set_epi16, _mm256_shuffle_epi8, _mm_and_si128, _mm_castsi128_ps, _mm_cmpeq_epi32, _mm_cmpeq_epi8, _mm_hadd_epi16, _mm_loadu_si128, _mm_loadu_si64, _mm_maddubs_epi16, _mm_movemask_epi8, _mm_movemask_ps, _mm_mullo_epi16, _mm_set1_epi32, _mm_set1_epi8, _mm_set_epi16, _mm_set_epi32, _mm_set_epi8, _mm_shuffle_epi8, _mm_srli_epi16};
 use std::arch::x86_64::_mm_castps_si128;
+use std::borrow::BorrowMut;
 /* 
 const X : u32 = 0b11;
 const M : u32 = 0b01;
@@ -83,100 +84,35 @@ pub unsafe fn part1_unsafe(input:&str) -> u32 {
             | ((dp[row*COLS-1]*4)&UP_MASK)
             | ((dp[row*COLS-2]*4)&LD_MASK);
 
-        
         // let dance = _mm_set_epi16(0x0102, 0x0304, 0x0506, 0x0708, 0x090a, 0x0b0c, 0x0d0e, 0x0fff);
-
-        /*
-
         {
-            let col = 0;
-            while col < COLS {
-                if COLS - col {}
-            }
-        }
+            let every_other =_mm_set_epi8(16,1,16,1, 16,1,16,1, 16,1,16,1, 16,1,16,1);
 
-        */
+            let every_other2 = _mm_set_epi16(256, 1, 256, 1, 256, 1, 256, 1);
+    
+            let lookup  = _mm_set_epi32(0, 0, 0, 0x08040201);
+    
+            let acc : __m128i;
+            let mut col = 0;
+            while col < COLS - 32 {
+                let chunk = _mm_loadu_si128(b.as_ptr().offset((row*COLS_NEWL+col) as isize) as *const __m128i);
+                let chunk4 = _mm_shuffle_epi8(lookup,_mm_srli_epi16(_mm_and_si128(chunk, _mm_set1_epi8(CHAR_MASK as i8)),3));
+                let chunk8 = _mm_maddubs_epi16(chunk4, every_other);
+                let mut chunk16 = _mm_hadd_epi16(_mm_mullo_epi16(chunk8,every_other2),_mm_set1_epi8(11) );
+                let future : &mut [u128] = std::mem::transmute::<_,&mut [u128;1]>(chunk16.borrow_mut());
 
-        /* 
+                future[0] = future[0] * (1 + (1 << 4) + (1<< 8) + (1<<12));
 
-        let samba = _mm256_set_epi16(0x0e0d, 0x0c0b, 0x0a09, 0x0807, 
-                                              0x0605, 0x0403, 0x0201, 0x00ff,
-                                              0x0e0d, 0x0c0b, 0x0a09, 0x0807, 
-                                              0x0605, 0x0403, 0x0201, 0x00ff,);
-        
-        let samba2 = _mm256_set_epi16(0x0d0c, 0x0b0a, 0x0908, 0x0706, 
-                                                0x0504, 0x0302, 0x0100, 0xffffu16 as i16,
-                                                0x0d0c, 0x0b0a, 0x0908, 0x0706, 
-                                                0x0504, 0x0302, 0x0100, 0xffffu16 as i16,);
-        
+                //let mask = _mm_movemask_epi8(_mm_cmpeq_epi8(_mm_and_si128(chunk16, _mm_set1_epi8(0b11110000u8 as i8)),_mm_set1_epi8(0b11110000u8 as i8)));
 
-        let samba3 = _mm256_set_epi16( 0x0c0b, 0x0a09, 0x0807, 0x0605, 0x0403,
-                                                     0x0201, 0x00ff, 0xffffu16 as i16,
-                                                     0x0c0b, 0x0a09, 0x0807, 0x0605, 0x0403,
-                                                     0x0201, 0x00ff, 0xffffu16 as i16,);        
-        
-        
-        let wobble = _mm256_set_epi16(0x0104,0x0104,0x0104,0x0104,
-                                               0x0104,0x0104,0x0104,0x0104,
-                                               0x0104,0x0104,0x0104,0x0104,
-                                               0x0104,0x0104,0x0104,0x0104,
+                println!("yay! {:#x} {:#x} {:?}", future[0], future[0] * (1 + (1 << 4) + (1<< 8) + (1<<12)) , &input[row*COLS_NEWL+col..row*COLS_NEWL+col+16]);
 
-                                            
-                                            );
+                col += 13;
 
-        {
-        let mut i = 0;
-            while i < (COLS-4)/26 {
-                /* 
-                let mut x = _mm_loadu_si128(b.as_ptr().offset((i*12) as isize) as *const __m128i);
-                cnt += _mm_movemask_ps(_mm_castsi128_ps(_mm_cmpeq_epi32(x,_mm_set1_epi32(0x584d4153)))).count_ones();
-                cnt += _mm_movemask_ps(_mm_castsi128_ps(_mm_cmpeq_epi32(x,_mm_set1_epi32(0x53414d58)))).count_ones();
-                x = _mm_shuffle_epi8(x, dance);
-                */
-                while b[i] != b'X' && b[i] != b'S' {
-                    i += 1;
-                    continue
-                }
-                // that's right bay-bee! overlapping unaligned simd loads. it's on purpose.
-                let mut x = _mm256_loadu2_m128i(
-                    b.as_ptr().offset((row*COLS_NEWL+i*26) as isize) as *const __m128i,
-                    b.as_ptr().offset((row*COLS_NEWL+i*26+13) as isize) as *const __m128i
-                );
-
-                {
-                let x1 = _mm256_shuffle_epi8(x, samba);
-                let x2 = _mm256_shuffle_epi8(x, samba2);
-                let x3 = _mm256_shuffle_epi8(x, samba3);
-
-                let FWD = _mm256_set1_epi32(0x584d4153);
-
-                let t1 = _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(x, FWD))).count_ones();
-                let t3 = _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(x1, FWD))).count_ones();
-                let t5= _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(x2, FWD))).count_ones();
-                let t7= _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(x3, FWD))).count_ones();
-
-                let REV = _mm256_set1_epi32(0x53414d58);
-
-                let t2 = _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(x, REV))).count_ones();
-                let t4 = _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(x1, REV))).count_ones();
-                let t6= _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(x2, REV))).count_ones();
-                let t8= _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(x3, REV))).count_ones();
-                // doing this is somehow 15% faster than doing hcnt += on every line 
-                hcnt += t1 + t2 + t3 + t4 + t5+ t6 + t7 + t8;
-                }
-                i += 26
-                
-                /*
-                println!("alright.");
-                println!("{:#x}",std::mem::transmute::<_,u128>(_mm256_extractf128_si256::<0>(x1)));
-                println!("{:#x}",std::mem::transmute::<_,u128>(_mm256_extractf128_si256::<0>(x2)));
-                println!("{:#x}",std::mem::transmute::<_,u128>(_mm256_extractf128_si256::<0>(x3)));
-                */
 
             }
-            
-        }
-        */
+        };
+
         
     }
 
