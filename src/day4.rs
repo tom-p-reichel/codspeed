@@ -1,6 +1,6 @@
 
 use core::str;
-use std::arch::x86_64::{__m128i, __m256i, _mm256_and_si256, _mm256_castps_si256, _mm256_castsi256_ps, _mm256_cmpeq_epi32, _mm256_cmpeq_epi8, _mm256_extractf128_pd, _mm256_extractf128_si256, _mm256_load_ps, _mm256_loadu2_m128, _mm256_loadu2_m128i, _mm256_loadu_ps, _mm256_maddubs_epi16, _mm256_maskload_ps, _mm256_min_epi8, _mm256_movemask_epi8, _mm256_movemask_ps, _mm256_set1_epi32, _mm256_set1_epi8, _mm256_set_epi16, _mm256_shuffle_epi8, _mm_and_si128, _mm_castsi128_ps, _mm_cmpeq_epi32, _mm_cmpeq_epi8, _mm_hadd_epi16, _mm_loadu_si128, _mm_loadu_si64, _mm_maddubs_epi16, _mm_movemask_epi8, _mm_movemask_ps, _mm_mullo_epi16, _mm_set1_epi32, _mm_set1_epi8, _mm_set_epi16, _mm_set_epi32, _mm_set_epi8, _mm_shuffle_epi8, _mm_srli_epi16};
+use std::arch::x86_64::{__m128i, __m256i, _mm256_and_si256, _mm256_castps_si256, _mm256_castsi256_ps, _mm256_cmpeq_epi32, _mm256_cmpeq_epi8, _mm256_extractf128_pd, _mm256_extractf128_si256, _mm256_load_ps, _mm256_loadu2_m128, _mm256_loadu2_m128i, _mm256_loadu_ps, _mm256_loadu_si256, _mm256_maddubs_epi16, _mm256_maskload_ps, _mm256_min_epi8, _mm256_movemask_epi8, _mm256_movemask_ps, _mm256_set1_epi32, _mm256_set1_epi8, _mm256_set_epi16, _mm256_set_epi32, _mm256_shuffle_epi8, _mm256_srli_epi16, _mm_and_si128, _mm_castsi128_ps, _mm_cmpeq_epi32, _mm_cmpeq_epi8, _mm_hadd_epi16, _mm_loadu_si128, _mm_loadu_si64, _mm_maddubs_epi16, _mm_movemask_epi8, _mm_movemask_ps, _mm_mullo_epi16, _mm_set1_epi32, _mm_set1_epi8, _mm_set_epi16, _mm_set_epi32, _mm_set_epi8, _mm_shuffle_epi8, _mm_srli_epi16};
 use std::arch::x86_64::_mm_castps_si128;
 use std::borrow::BorrowMut;
 /* 
@@ -84,35 +84,6 @@ pub unsafe fn part1_unsafe(input:&str) -> u32 {
             | ((dp[row*COLS-1]*4)&UP_MASK)
             | ((dp[row*COLS-2]*4)&LD_MASK);
 
-        // let dance = _mm_set_epi16(0x0102, 0x0304, 0x0506, 0x0708, 0x090a, 0x0b0c, 0x0d0e, 0x0fff);
-        {
-            let every_other =_mm_set_epi8(16,1,16,1, 16,1,16,1, 16,1,16,1, 16,1,16,1);
-
-            let every_other2 = _mm_set_epi16(256, 1, 256, 1, 256, 1, 256, 1);
-    
-            let lookup  = _mm_set_epi32(0, 0, 0, 0x08040201);
-    
-            let acc : __m128i;
-            let mut col = 0;
-            while col < COLS - 32 {
-                let chunk = _mm_loadu_si128(b.as_ptr().offset((row*COLS_NEWL+col) as isize) as *const __m128i);
-                let chunk4 = _mm_shuffle_epi8(lookup,_mm_srli_epi16(_mm_and_si128(chunk, _mm_set1_epi8(CHAR_MASK as i8)),3));
-                let chunk8 = _mm_maddubs_epi16(chunk4, every_other);
-                let mut chunk16 = _mm_hadd_epi16(_mm_mullo_epi16(chunk8,every_other2),_mm_set1_epi8(11) );
-                let future : &mut [u128] = std::mem::transmute::<_,&mut [u128;1]>(chunk16.borrow_mut());
-
-                future[0] = future[0] * (1 + (1 << 4) + (1<< 8) + (1<<12));
-
-                //let mask = _mm_movemask_epi8(_mm_cmpeq_epi8(_mm_and_si128(chunk16, _mm_set1_epi8(0b11110000u8 as i8)),_mm_set1_epi8(0b11110000u8 as i8)));
-
-                println!("yay! {:#x} {:#x} {:?}", future[0], future[0] * (1 + (1 << 4) + (1<< 8) + (1<<12)) , &input[row*COLS_NEWL+col..row*COLS_NEWL+col+16]);
-
-                col += 13;
-
-
-            }
-        };
-
         
     }
 
@@ -138,12 +109,69 @@ pub unsafe fn part1_unsafe(input:&str) -> u32 {
         }
     }
 
+
+
+    for row in (0..ROWS) {
+        {
+            let lookup  = _mm256_set_epi32(0, 0, 0, 0x08040201,0, 0, 0, 0x08040201);
+    
+            let mut col = 0;
+            while col < COLS - 32 {
+                let chunk = _mm256_loadu_si256(b.as_ptr().offset((row*COLS_NEWL+col) as isize) as *const __m256i);
+                let mut chunk4 = _mm256_shuffle_epi8(lookup,_mm256_srli_epi16(_mm256_and_si256(chunk, _mm256_set1_epi8(CHAR_MASK as i8)),3)); 
+                let future : &mut [u64;4] = std::mem::transmute::<_,&mut [u64;4]>(chunk4.borrow_mut());
+
+                //future[1] = future[1] * (1 + (1 << 8) + (1<< 16) + (1<<24)) + (future[0] >> 104) + (future[0] >> 112) + (future[0] >> 120);
+                //future[0] = future[0] * ( 1 + (1 << 8) + (1<< 16) + (1<<24));
+
+                let coef = (1 + (1 << 8) + (1<< 16) + (1<<24));
+                future[3] = future[3] * coef + (((future[2] >> 40)*coef)>>24); 
+                future[2] = future[2] * coef + (((future[1] >> 40)*coef)>>24);
+                future[1] = future[1] * coef + (((future[0] >> 40)*coef)>>24);
+                future[0] = future[0] * coef ; //+ ((future[2] >> 40)*coef)>>24;
+
+                let mut mask = _mm256_movemask_epi8(_mm256_cmpeq_epi8(chunk4, _mm256_set1_epi8(0x0f))) as u32;
+
+                //let mask = _mm_movemask_epi8(_mm_cmpeq_epi8(_mm_and_si128(chunk16, _mm_set1_epi8(0b11110000u8 as i8)),_mm_set1_epi8(0b11110000u8 as i8)));
+
+                //println!("yay! {:#018x}  {:#034b} {:?}", future[0], mask, &input[row*COLS_NEWL+col..row*COLS_NEWL+col+32]);
+
+                while mask != 0 {
+                    let tz = mask.trailing_zeros();
+                    mask -= 1 << tz;
+                    let interest = &b[row*COLS_NEWL+col+(tz as usize)-3..row*COLS_NEWL+col+(tz as usize)+1 ];
+                    if interest == b"XMAS" || interest == b"SAMX" {
+                        //println!("ding!");
+                        hcnt += 1;
+                    }
+                }
+
+                col += 29;
+
+
+            }
+
+
+ 
+            while col < COLS - 3 {
+                let interest = &b[row*COLS_NEWL+col..row*COLS_NEWL+col+4];
+                if interest == b"XMAS" || interest == b"SAMX" {
+                    //println!("manual ding!");
+                    hcnt += 1;
+                }
+                col += 1;
+
+            }
+
+        };
+    }
+
     
 
 
     //print_DP(dp[139*140]);
 
-    //println!("dvcnt: {} hcnt: {}",dvcnt,hcnt);
+    // println!("dvcnt: {} hcnt: {}",dvcnt,hcnt);
 
     return dvcnt+hcnt;
 }
