@@ -120,6 +120,14 @@ pub unsafe fn part1_unsafe(input:&str) -> u32 {
                 let future : &mut [u64;4] = std::mem::transmute::<_,&mut [u64;4]>(chunk4.borrow_mut());
                 //let future : &mut [u64;4] = chunk4.borrow_mut() as &mut [u64;4];
 
+                // this is a very particular multiplication that 
+                // convolves the lower 2 bits of every byte to the
+                // appropriate places in the next 3 bytes. 
+
+                // as a result we get 256 bytes that 
+                // uniquely describes every length 4 substring
+                // in our 32 bytes of input (1 byte per substring )
+                
                 // compiler autovectorizes this adequately
                 let coef = 1 + (1 << 10) + (1<< 20) + (1<< 30);
                 future[3] = future[3] * coef + (((future[2] >> 34)*coef)>>30); 
@@ -133,7 +141,6 @@ pub unsafe fn part1_unsafe(input:&str) -> u32 {
                 hcnt += mask.count_ones() + mask2.count_ones(); 
 
                 // println!("yay! {:#018x}  {:#034b} {:?}", future[0], mask, &input[row*COLS_NEWL+col..row*COLS_NEWL+col+32]);
-
 
                 col += 29;
 
